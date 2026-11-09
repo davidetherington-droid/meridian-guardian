@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +7,273 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meridian Guardian | Digital Safety</title>
 <style>
-:root{font-family:system-ui,-apple-system,sans-serif;color:#142d39;background:#edf4f5}
+:root{font-family:system-ui,-apple-system,sans-serif;color:#16313c;background:#edf4f5}
+*{box-sizing:border-box}
+body{margin:0}
+header{background:#123b49;color:white;padding:25px 18px;text-align:center}
+header h1{margin:5px 0;font-size:30px}
+main{max-width:720px;margin:auto;padding:16px}
+section{background:white;border-radius:17px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px #0000000b}
+h2{font-size:22px;margin:0 0 12px}
+button,input,textarea{font:inherit;font-size:18px}
+button{min-height:50px;padding:12px;border:2px solid #bed0d5;border-radius:11px;background:white;color:#16313c;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #26769b;outline-offset:2px}
+button.selected{background:#dff3eb;border-color:#13765d}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.options{display:grid;gap:10px}
+.notice{background:#fff2d6;border-left:5px solid #b97800;padding:14px;border-radius:9px}
+.result{background:#e5f5ee;padding:14px;border-radius:10px;margin-top:14px;white-space:pre-line}
+.warning{background:#fff0eb}
+.primary{background:#123b49;color:white;border:0;text-align:center;font-weight:bold;width:100%;margin-top:12px}
+input,textarea{width:100%;border:2px solid #b8cbd1;border-radius:10px;padding:13px;margin:10px 0}
+textarea{min-height:125px}
+.small{font-size:14px;color:#52656c}
+footer{text-align:center;padding:20px;color:#52656c;font-size:14px}
+</style>
+</head>
+<body>
+<header>
+<div style="font-size:36px">🛡️</div>
+<h1>Meridian Guardian</h1>
+<p>Your free digital safety companion</p>
+<p>Educational prototype v0.6</p>
+</header>
+<main>
+<section>
+<h2>Welcome</h2>
+<p>Learn to recognise suspicious emails, dangerous requests and risky website links.</p>
+<div class="notice"><strong>Demonstration only.</strong> Guardian does not scan your device, inspect emails or provide live security monitoring. No result guarantees safety.</div>
+</section>
+
+<section>
+<h2>🔗 Guardian Link Checker</h2>
+<p>Paste a website address to check for some common warning signs. Guardian will not open the link.</p>
+<label for="link"><strong>Website address</strong></label>
+<input id="link" type="text" placeholder="https://example.com" autocomplete="off">
+<button class="primary" onclick="checkLink()">Check website address</button>
+<div id="linkResult" aria-live="polite"></div>
+</section>
+
+<section>
+<h2>📩 Scam Message Checker</h2>
+<p>Paste a suspicious message to look for common scam tactics. Remove names, passwords, codes and other private details first.</p>
+<label for="message"><strong>Message text</strong></label>
+<textarea id="message" placeholder="Paste a suspicious message here"></textarea>
+<button class="primary" onclick="checkMessage()">Check message</button>
+<div id="messageResult" aria-live="polite"></div>
+</section>
+
+<section>
+<h2>Practise safer decisions</h2>
+<div class="grid" id="tabs"></div>
+</section>
+
+<section>
+<h2 id="heading"></h2>
+<p class="notice" id="scenario"></p>
+<h3 id="question"></h3>
+<div class="options" id="answers"></div>
+<div id="feedback" aria-live="polite"></div>
+<button class="primary" id="next" hidden>Try next situation →</button>
+</section>
+
+<section>
+<h2>AI Risk Activity Report</h2>
+<p class="small">Example report only. No device scan performed.</p>
+<p>Device monitoring: <strong>Not connected</strong></p>
+<p>Email scanning: <strong>Not connected</strong></p>
+<p>Remote access detection: <strong>Not connected</strong></p>
+<p>Training situations completed: <strong id="progress">0 of 4</strong></p>
+</section>
+
+<section>
+<h2>Privacy and safety</h2>
+<p>The checkers run in your browser. They do not send submitted text or links to a Guardian server, and they do not follow the links you enter.</p>
+<p>Guardian uses no accounts or advertising trackers in this prototype. Do not enter sensitive information.</p>
+<p>If you are worried about a bank, account or payment, contact the organisation independently through a trusted app or telephone number.</p>
+<p><strong>Important:</strong> A link or message with no detected warning signs may still be malicious.</p>
+</section>
+</main>
+<footer>Meridian Guardian — Free public educational prototype<br>Independent safety advice. No advertisements.</footer>
+
+<script>
+"use strict";
+const el=id=>document.getElementById(id);
+
+function result(id,title,items,warning){
+const target=el(id);
+target.replaceChildren();
+const box=document.createElement("div");
+box.className="result"+(warning?" warning":"");
+const heading=document.createElement("strong");
+heading.textContent=title;
+box.appendChild(heading);
+const ul=document.createElement("ul");
+items.forEach(item=>{
+const li=document.createElement("li");
+li.textContent=item;
+ul.appendChild(li);
+});
+box.appendChild(ul);
+const note=document.createElement("p");
+note.textContent="This is an educational check, not proof that anything is safe.";
+box.appendChild(note);
+target.appendChild(box);
+}
+
+function checkLink(){
+const raw=el("link").value.trim();
+if(!raw){
+result("linkResult","Enter a website address",["Paste an address first."],true);
+return;
+}
+let u;
+try{
+u=new URL(/^[a-z][a-z0-9+.-]*:/i.test(raw)?raw:"https://"+raw);
+}catch(e){
+result("linkResult","Address not recognised",["Check the spelling and format."],true);
+return;
+}
+const flags=[];
+if(!["http:","https:"].includes(u.protocol)){
+flags.push("This uses an unusual link scheme. Do not open it without verification.");
+}
+if(u.protocol==="http:"){
+flags.push("This address does not use HTTPS.");
+}
+if(u.username||u.password||raw.includes("@")){
+flags.push("The address contains an @ symbol or embedded account details.");
+}
+if(/^\d{1,3}(\.\d{1,3}){3}$/.test(u.hostname)){
+flags.push("The address uses a numeric IP address instead of a normal domain name.");
+}
+if(/\.(exe|msi|apk|dmg|pkg|zip|scr|bat)$/i.test(u.pathname)){
+flags.push("The link appears to point to a software download or archive.");
+}
+if(/login|verify|payment|refund/i.test(u.pathname+u.search)){
+flags.push("The address includes account, verification or payment wording.");
+}
+if(u.hostname.startsWith("xn--")||u.hostname.includes(".xn--")){
+flags.push("The domain uses encoded international characters; check its spelling carefully.");
+}
+result("linkResult",
+flags.length?"Warning signs found":"No obvious warning signs found",
+flags.length?flags:["This does not establish that the website is genuine or safe. Check the full domain independently."],
+flags.length>0);
+}
+
+function checkMessage(){
+const raw=el("message").value.trim();
+if(!raw){
+result("messageResult","Enter a message",["Paste a message first, without private information."],true);
+return;
+}
+const rules=[
+[/urgent|immediately|act now|account.{0,30}(frozen|suspended)/i,"Pressure, urgency or threats involving an account."],
+[/password|security code|verification code|one.time code|otp/i,"A request involving passwords or security codes."],
+[/gift card|bitcoin|bank transfer|payment required/i,"A payment or unusual payment-method request."],
+[/anydesk|teamviewer|remote access|share your screen/i,"A request for remote access or screen sharing."],
+[/click.{0,20}link|verify your account|claim your prize/i,"A request to click a link, verify an account or claim a prize."]
+];
+const flags=rules.filter(rule=>rule[0].test(raw)).map(rule=>rule[1]);
+result("messageResult",
+flags.length?"Possible scam indicators":"No listed indicators found",
+flags.length?flags:["This check cannot establish who sent the message or whether it is genuine."],
+flags.length>0);
+}
+
+const scenarios=[
+{
+tab:"📧 Email",
+heading:"Suspicious email",
+message:"Your bank account will be frozen in 30 minutes. Click this link, enter your password and confirm the code we send.",
+question:"What should you do?",
+answers:[
+["Click the link and sign in",false,"A fake website could steal your details."],
+["Open my bank app independently",true,"Correct. Verify the claim using your bank's official app."],
+["Reply asking if it is genuine",false,"A scammer may reply. Contact the bank independently."]
+],
+advice:"Urgency and requests for security codes are warning signs."
+},
+{
+tab:"⬇️ Download",
+heading:"Software download warning",
+message:"An unexpected caller says they are from technical support and asks you to install a screen-sharing app.",
+question:"What is the safest action?",
+answers:[
+["Install it because the app is well known",false,"Legitimate software can still be misused."],
+["Stop and verify the caller independently",true,"Correct. Use a trusted number to contact the organisation."],
+["Give the caller an access code",false,"An access code may allow someone to view or control your device."]
+],
+advice:"Do not grant remote access to an unverified caller."
+},
+{
+tab:"🖥️ Screen",
+heading:"Screen-sharing request",
+message:"Someone asks you to share your screen and open your banking app to receive a refund.",
+question:"What should you do?",
+answers:[
+["Share my screen",false,"Financial information could be exposed."],
+["Stop and contact the organisation myself",true,"Correct. End the session and verify independently."],
+["Share for only one minute",false,"Even brief access may expose sensitive information."]
+],
+advice:"Never reveal banking details during an unexpected screen-sharing session."
+},
+{
+tab:"🔒 Privacy",
+heading:"App permission check",
+message:"A photo-editing app asks for access to your entire photo library. You only want to edit one photo.",
+question:"Which choice best protects privacy?",
+answers:[
+["Allow all photos forever",false,"That may grant unnecessary access."],
+["Choose selected photos if offered",true,"Correct. Give apps only the permissions they need."],
+["Assume all App Store apps are safe",false,"App review does not guarantee complete safety."]
+],
+advice:"Review permissions in your iPad Settings."
+}
+];
+
+let current=0;
+const completed=new Set();
+
+function show(i){
+current=i;
+const s=scenarios[i];
+el("tabs").replaceChildren();
+scenarios.forEach((item,j)=>{
+const b=document.createElement("button");
+b.textContent=item.tab;
+b.className=i===j?"selected":"";
+b.setAttribute("aria-pressed",String(i===j));
+b.onclick=()=>show(j);
+el("tabs").appendChild(b);
+});
+el("heading").textContent=s.heading;
+el("scenario").textContent=s.message;
+el("question").textContent=s.question;
+el("answers").replaceChildren();
+el("feedback").replaceChildren();
+el("next").hidden=true;
+s.answers.forEach(([label,correct,reason])=>{
+const b=document.createElement("button");
+b.textContent=label;
+b.onclick=()=>{
+completed.add(i);
+el("progress").textContent=completed.size+" of 4";
+result("feedback",
+correct?"Good safety decision":"Guardian recommends caution",
+[reason,s.advice],!correct);
+el("next").hidden=false;
+};
+el("answers").appendChild(b);
+});
+}
+el("next").onclick=()=>show((current+1)%scenarios.length);
+show(0);
+</script>
+</body>
+</html>
+{font-family:system-ui,-apple-system,sans-serif;color:#142d39;background:#edf4f5}
 *{box-sizing:border-box}
 body{margin:0}
 header{background:#123b49;color:white;padding:25px 18px;text-align:center}
