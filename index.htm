@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meridian Guardian | Digital Safety</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#142d39;background:#edf4f5}
+*{box-sizing:border-box}
+body{margin:0}
+header{background:#123b49;color:white;padding:25px 18px;text-align:center}
+header h1{margin:6px 0;font-size:29px}
+header p{margin:4px 0}
+main{max-width:700px;margin:auto;padding:18px}
+section{background:white;border-radius:17px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px #0000000d}
+h2{font-size:21px;margin:0 0 12px}
+button{font:inherit;min-height:49px;padding:12px;border:2px solid #bfd0d5;border-radius:11px;background:white;color:#142d39;cursor:pointer;text-align:left}
+button:focus-visible{outline:3px solid #246d9a;outline-offset:2px}
+button.selected{background:#e0f3ed;border-color:#13765d}
+.options{display:grid;gap:10px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.tabs button{text-align:center;font-weight:600}
+.notice{background:#fff3d8;border-left:5px solid #bd7800;padding:13px;border-radius:8px}
+.result{background:#e5f5ee;padding:14px;border-radius:10px;margin-top:14px}
+.warning{background:#fff0ec}
+.small{font-size:14px;color:#4c606b}
+.primary{background:#123b49;color:white;border:0;text-align:center;font-weight:bold;width:100%;margin-top:12px}
+footer{text-align:center;padding:22px;font-size:13px;color:#4c606b}
+</style>
+</head>
+<body>
+<header>
+<div style="font-size:35px">🛡️</div>
+<h1>Meridian Guardian</h1>
+<p>Your digital safety companion</p>
+<p>Learn to recognise online risks</p>
+</header>
+<main>
+<section>
+<h2>Welcome</h2>
+<p>Guardian helps you practise safer decisions about emails, downloads, screen sharing and app permissions.</p>
+<div class="notice"><strong>Demonstration only.</strong> This website does not scan your device, read emails or provide live security protection.</div>
+</section>
+<section>
+<h2>Choose a safety situation</h2>
+<div class="tabs" id="tabs"></div>
+</section>
+<section aria-live="polite">
+<h2 id="heading"></h2>
+<p class="notice" id="scenario"></p>
+<h3 id="question"></h3>
+<div class="options" id="answers"></div>
+<div id="feedback" aria-live="polite"></div>
+<button class="primary" id="next" hidden>Try next situation →</button>
+</section>
+<section>
+<h2>AI Risk Activity Report</h2>
+<p class="small">Illustrative report — no device scan performed.</p>
+<p>Device monitoring: <strong>Not connected</strong></p>
+<p>Email scanning: <strong>Not connected</strong></p>
+<p>Remote access detection: <strong>Not connected</strong></p>
+<p>Training situations completed: <strong id="progress">0 of 4</strong></p>
+</section>
+<section>
+<h2>Safety first</h2>
+<p>If someone unexpectedly asks for your password, banking code, payment or remote access, stop and verify their identity independently.</p>
+<p>Never treat the absence of a Guardian warning as proof that something is safe.</p>
+</section>
+</main>
+<footer>
+Meridian Guardian — Public Educational Prototype<br>
+No accounts, tracking or personal information required.
+</footer>
+<script>
+const scenarios=[
+{
+tab:"📧 Email",
+heading:"Suspicious email",
+message:"Your bank account will be frozen in 30 minutes. Click this link, enter your password and confirm the code we send.",
+question:"What should you do?",
+answers:[
+["Click the link and sign in",false,"A fake website could steal your details."],
+["Open my bank app independently",true,"Correct. Verify the claim through your bank's official app."],
+["Reply asking if it is genuine",false,"A scammer may reply. Contact the bank independently."]
+],
+advice:"Urgency, threats and requests for security codes are warning signs."
+},
+{
+tab:"⬇️ Download",
+heading:"Software download warning",
+message:"An unexpected caller says they are from technical support and asks you to install a screen-sharing app.",
+question:"What is the safest action?",
+answers:[
+["Install it because the app is well known",false,"Even legitimate software can be misused by scammers."],
+["Stop and verify the caller independently",true,"Correct. Contact the organisation using a trusted number."],
+["Give the caller an access code",false,"An access code may let someone view or control your device."]
+],
+advice:"Do not install remote-support software at the request of an unverified caller."
+},
+{
+tab:"🖥️ Screen",
+heading:"Screen-sharing request",
+message:"Someone on the phone asks you to share your screen and open your banking app to receive a refund.",
+question:"What should you do?",
+answers:[
+["Share my screen",false,"Private financial information could be exposed."],
+["Stop and contact the organisation myself",true,"Correct. End the session and verify independently."],
+["Share for only one minute",false,"Even brief access can expose sensitive information."]
+],
+advice:"Never show banking passwords or verification codes during an unexpected screen-sharing session."
+},
+{
+tab:"🔒 Privacy",
+heading:"App permission check",
+message:"A photo-editing app asks for access to your entire photo library. You only want to edit one photo.",
+question:"Which choice best protects privacy?",
+answers:[
+["Allow all photos forever",false,"That may grant unnecessary access."],
+["Choose selected photos if offered",true,"Correct. Give apps only the permissions they need."],
+["Assume all App Store apps are safe",false,"App review does not guarantee complete safety."]
+],
+advice:"Review app permissions in your iPad Settings."
+}
+];
+let current=0;
+const completed=new Set();
+const el=id=>document.getElementById(id);
+function show(i){
+current=i;
+const s=scenarios[i];
+el("tabs").innerHTML="";
+scenarios.forEach((item,j)=>{
+const b=document.createElement("button");
+b.textContent=item.tab;
+b.className=i===j?"selected":"";
+b.setAttribute("aria-pressed",String(i===j));
+b.onclick=()=>show(j);
+el("tabs").appendChild(b);
+});
+el("heading").textContent=s.heading;
+el("scenario").textContent=s.message;
+el("question").textContent=s.question;
+el("answers").innerHTML="";
+el("feedback").innerHTML="";
+el("next").hidden=true;
+s.answers.forEach(([label,correct,reason])=>{
+const b=document.createElement("button");
+b.textContent=label;
+b.onclick=()=>{
+completed.add(i);
+el("progress").textContent=completed.size+" of 4";
+el("feedback").innerHTML="";
+const box=document.createElement("div");
+box.className="result"+(correct?"":" warning");
+const title=document.createElement("strong");
+title.textContent=correct?"✓ Good safety decision":"⚠ Guardian recommends caution";
+const p=document.createElement("p");
+p.textContent=reason+" "+s.advice;
+box.append(title,p);
+el("feedback").appendChild(box);
+el("next").hidden=false;
+};
+el("answers").appendChild(b);
+});
+}
+el("next").onclick=()=>show((current+1)%scenarios.length);
+show(0);
+</script>
+</body>
+</html>
